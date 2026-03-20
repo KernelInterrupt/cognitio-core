@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cognitio-guided-reading"
+version = "0.1.0"
+description = "Headless guided-reading backend for structured documents"
+readme = "docs/backend_blueprint_v1.md"
+requires-python = ">=3.13"
+license = { text = "Apache-2.0" }
+authors = [
+  { name = "Cognitio" }
+]
+dependencies = [
+  "fastapi>=0.135,<0.136",
+  "uvicorn>=0.42,<0.43",
+  "pydantic>=2.12,<3",
+  "python-dotenv>=1.2,<2",
+  "rich>=14.3,<15",
+  "typer>=0.24,<0.25",
+  "openai>=2.29,<3",
+  "httpx>=0.28,<0.29",
+  "sqlalchemy>=2.0.48,<2.1",
+  "alembic>=1.18,<2",
+  "asyncpg>=0.31,<0.32",
+  "redis>=7.3,<8",
+  "pdfplumber>=0.11.9,<0.12",
+  "pdfminer.six>=20251230,<20270000",
+  "plasTeX>=3.1,<4",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=9.0,<10",
+  "ruff>=0.15,<0.16",
+]
+
+[project.scripts]
+cognitio-headless = "app.cli.run_headless:app"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+

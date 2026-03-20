@@ -1,0 +1,10 @@
+.conda/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.env
+dist/
+build/
+.cognitio/
