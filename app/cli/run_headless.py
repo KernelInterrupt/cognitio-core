@@ -9,8 +9,9 @@ import typer
 from rich.console import Console
 
 from app.adapters.llm.registry import create_provider
-from app.adapters.source.text_adapter import TextAdapter
 from app.domain.reading_goal import ReadingGoal, UserIntervention
+from app.ingest.factory import build_default_router
+from app.ingest.source import DocumentSource
 from app.runtime.orchestrator import Orchestrator
 
 app = typer.Typer(help="Run the headless guided-reading MVP.")
@@ -32,11 +33,42 @@ def _load_interventions(path: Path | None) -> list[UserIntervention]:
     return items
 
 
+async def _run_main(
+    input: Path,
+    goal: str,
+    provider: str,
+    model: str,
+    interventions: Path | None,
+    permission_tier: str,
+    jsonl: bool,
+) -> None:
+    reading_goal = ReadingGoal(user_query=goal)
+    document = await build_default_router().aingest_to_ir(
+        DocumentSource.from_path(input),
+        goal=reading_goal,
+    )
+    model_provider = create_provider(provider, model=model)
+    queued_interventions = _load_interventions(interventions)
+    events = await Orchestrator(model_provider).run(
+        document,
+        reading_goal,
+        interventions=queued_interventions,
+        permission_tier=permission_tier,
+    )
+
+    for event in events:
+        if jsonl:
+            console.print(json.dumps(event.model_dump(), ensure_ascii=False))
+        else:
+            payload = " ".join(f"{k}={v}" for k, v in event.payload.items())
+            console.print(f"[{event.type}] {payload}".strip())
+
+
 @app.command()
 def main(
     input: Annotated[
         Path,
-        typer.Option(..., exists=True, readable=True, help="Path to input text document."),
+        typer.Option(..., exists=True, readable=True, help="Path to input document."),
     ],
     goal: Annotated[str, typer.Option(..., help="Goal-conditioned reading instruction.")],
     provider: Annotated[
@@ -68,25 +100,17 @@ def main(
         typer.Option(help="Emit JSONL instead of human-readable events."),
     ] = False,
 ) -> None:
-    raw_text = input.read_text(encoding="utf-8")
-    document = TextAdapter().parse(raw_text)
-    model_provider = create_provider(provider, model=model)
-    queued_interventions = _load_interventions(interventions)
-    events = asyncio.run(
-        Orchestrator(model_provider).run(
-            document,
-            ReadingGoal(user_query=goal),
-            interventions=queued_interventions,
+    asyncio.run(
+        _run_main(
+            input=input,
+            goal=goal,
+            provider=provider,
+            model=model,
+            interventions=interventions,
             permission_tier=permission_tier,
+            jsonl=jsonl,
         )
     )
-
-    for event in events:
-        if jsonl:
-            console.print(json.dumps(event.model_dump(), ensure_ascii=False))
-        else:
-            payload = " ".join(f"{k}={v}" for k, v in event.payload.items())
-            console.print(f"[{event.type}] {payload}".strip())
 
 
 if __name__ == "__main__":

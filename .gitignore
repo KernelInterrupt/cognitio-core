@@ -8,3 +8,9 @@ __pycache__/
 dist/
 build/
 .cognitio/
+
+# experiment artifacts
+experiments/docling_gguf/models/
+experiments/attention_is_all_you_need.pdf
+experiments/attention_transformer/output/
+experiments/attention_transformer/*.txt
