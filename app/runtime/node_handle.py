@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from app.domain.annotation import Annotation
+from app.domain.research import ResearchRequest
 from app.domain.signals import Advice, HighlightState, WarningSignal
 
 if TYPE_CHECKING:
@@ -37,5 +38,5 @@ class NodeHandle:
     ) -> Annotation:
         return self.tools.open_annotation(self.node_id, annotation_type, language)
 
-    def research(self, goal: str, scope: str | None = None) -> dict[str, str | None]:
+    def research(self, goal: str, scope: str | None = None) -> ResearchRequest:
         return self.tools.research(self.node_id, goal, scope)

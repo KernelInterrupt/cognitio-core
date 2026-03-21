@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 from app.domain.annotation import CompileError
 from app.domain.document_ir import DocumentIR
 from app.domain.reading_goal import ReadingGoal, UserIntervention
+from app.domain.research import ResearchFinding
 
 
 class ProviderCapabilities(BaseModel):
@@ -150,3 +151,18 @@ class AnnotationEditResponse(BaseModel):
 class ProviderEvent(BaseModel):
     type: Literal["message_delta", "tool_call", "completed", "error"]
     payload: dict[str, Any] = Field(default_factory=dict)
+
+
+class ResearchSubtaskRequest(BaseModel):
+    task_id: str
+    node_id: str
+    goal: str
+    scope: str | None = None
+    node_text: str
+    reading_mode: str
+    system_prompt: str
+
+
+class ResearchSubtaskResponse(BaseModel):
+    findings: list[ResearchFinding] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)

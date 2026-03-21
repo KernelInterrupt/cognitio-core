@@ -77,9 +77,18 @@ class RunAwaitingUserInputPayload(BaseModel):
 
 
 class ResearchRequestedPayload(BaseModel):
+    task_id: str
     node_id: str
     goal: str
     scope: str | None = None
+
+
+class ResearchCompletedPayload(BaseModel):
+    task_id: str
+    node_id: str
+    goal: str
+    findings: list[dict[str, Any]] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
 
 
 class RunCompletedPayload(BaseModel):

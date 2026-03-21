@@ -13,9 +13,12 @@ from app.adapters.llm.models import (
     PlanRequest,
     PlanResponse,
     ProviderCapabilities,
+    ResearchSubtaskRequest,
+    ResearchSubtaskResponse,
     WarningAction,
     WriteFileAction,
 )
+from app.domain.research import ResearchFinding
 
 
 class HeuristicProvider(ModelProvider):
@@ -90,3 +93,40 @@ class HeuristicProvider(ModelProvider):
 
         body = request.editable_region.strip() or "这里写批注内容。"
         return AnnotationEditResponse(action=WriteFileAction(content=body))
+
+    async def research_subtask(self, request: ResearchSubtaskRequest) -> ResearchSubtaskResponse:
+        text = request.node_text.lower()
+        findings: list[ResearchFinding] = []
+
+        if request.reading_mode == "instructional":
+            findings.append(
+                ResearchFinding(
+                    kind="constraint",
+                    content="优先检查前置条件、兼容性和安全步骤，再执行操作。",
+                )
+            )
+        if any(token in text for token in ("assume", "requires", "must", "需要")):
+            findings.append(
+                ResearchFinding(
+                    kind="risk",
+                    content="该段包含前提或约束，迁移/执行前应显式核对。",
+                )
+            )
+        if "medical" in request.goal.lower() or "迁移" in request.goal:
+            findings.append(
+                ResearchFinding(
+                    kind="transfer_note",
+                    content="迁移时优先识别原文中依赖领域假设的部分。",
+                )
+            )
+        if not findings:
+            findings.append(
+                ResearchFinding(
+                    kind="background",
+                    content="该研究子任务未发现明显额外风险，建议结合相邻段落继续阅读。",
+                )
+            )
+        return ResearchSubtaskResponse(
+            findings=findings,
+            notes=[f"Research subtask completed for {request.node_id}."],
+        )

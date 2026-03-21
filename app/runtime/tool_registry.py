@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app.domain.annotation import Annotation
+from app.domain.research import ResearchRequest
 from app.domain.signals import Advice, HighlightState, WarningSignal
 from app.runtime.node_handle import NodeHandle
 
@@ -54,5 +55,10 @@ class ToolRegistry:
             status="editing",
         )
 
-    def research(self, node_id: str, goal: str, scope: str | None = None) -> dict[str, str | None]:
-        return {"node_id": node_id, "goal": goal, "scope": scope}
+    def research(self, node_id: str, goal: str, scope: str | None = None) -> ResearchRequest:
+        return ResearchRequest(
+            task_id=f"research_{node_id}",
+            node_id=node_id,
+            goal=goal,
+            scope=scope,
+        )

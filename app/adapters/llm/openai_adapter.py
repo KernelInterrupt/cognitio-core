@@ -15,6 +15,8 @@ from app.adapters.llm.models import (
     PlanResponse,
     ProviderCapabilities,
     ProviderEvent,
+    ResearchSubtaskRequest,
+    ResearchSubtaskResponse,
 )
 
 
@@ -74,6 +76,15 @@ class OpenAIProvider(ModelProvider):
             instructions=request.system_prompt,
             input=request.model_dump_json(indent=2),
             text_format=AnnotationEditResponse,
+        )
+        return response.output_parsed
+
+    async def research_subtask(self, request: ResearchSubtaskRequest) -> ResearchSubtaskResponse:
+        response = await self._client.responses.parse(
+            model=self._model,
+            instructions=request.system_prompt,
+            input=request.model_dump_json(indent=2),
+            text_format=ResearchSubtaskResponse,
         )
         return response.output_parsed
 

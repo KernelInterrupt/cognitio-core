@@ -16,6 +16,7 @@ from app.protocol.events import (
     ReadingModeInferredPayload,
     ReadingPlanCreatedPayload,
     ReadingProgressPayload,
+    ResearchCompletedPayload,
     ResearchRequestedPayload,
     RunAwaitingUserInputPayload,
     RunCompletedPayload,
@@ -26,6 +27,7 @@ from app.runtime.permissions import PermissionProfile
 from app.runtime.session import ReadingSession
 from app.runtime.tool_registry import ToolRegistry
 from app.services.annotation_service import AnnotationService
+from app.services.research_service import ResearchService
 
 
 class Orchestrator:
@@ -33,6 +35,7 @@ class Orchestrator:
         self.provider = provider or HeuristicProvider()
         self.tools = ToolRegistry()
         self.annotation_service = AnnotationService(self.provider)
+        self.research_service = ResearchService(self.provider)
 
     async def run(
         self,
@@ -212,13 +215,30 @@ class Orchestrator:
                         build_event(
                             "research.requested",
                             ResearchRequestedPayload(
-                                node_id=str(research_request["node_id"]),
-                                goal=str(research_request["goal"]),
-                                scope=(
-                                    str(research_request["scope"])
-                                    if research_request["scope"] is not None
-                                    else None
-                                ),
+                                task_id=research_request.task_id,
+                                node_id=research_request.node_id,
+                                goal=research_request.goal,
+                                scope=research_request.scope,
+                            ),
+                        )
+                    )
+                    task, result = await self.research_service.run_subtask(
+                        research_request,
+                        node_text=node.text,
+                        reading_mode=session.reading_mode or "mixed",
+                    )
+                    events.append(
+                        build_event(
+                            "research.completed",
+                            ResearchCompletedPayload(
+                                task_id=task.task_id,
+                                node_id=task.node_id,
+                                goal=task.goal,
+                                findings=[
+                                    finding.model_dump(mode="json")
+                                    for finding in result.findings
+                                ],
+                                notes=result.notes,
                             ),
                         )
                     )

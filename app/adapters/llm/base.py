@@ -12,6 +12,8 @@ from app.adapters.llm.models import (
     PlanResponse,
     ProviderCapabilities,
     ProviderEvent,
+    ResearchSubtaskRequest,
+    ResearchSubtaskResponse,
 )
 
 
@@ -36,6 +38,12 @@ class ModelProvider(ABC):
 
     @abstractmethod
     async def edit_annotation(self, request: AnnotationEditRequest) -> AnnotationEditResponse: ...
+
+    @abstractmethod
+    async def research_subtask(
+        self,
+        request: ResearchSubtaskRequest,
+    ) -> ResearchSubtaskResponse: ...
 
     async def stream_guided_step(self, request: GuidedStepRequest) -> AsyncIterator[ProviderEvent]:
         response = await self.guided_step(request)
