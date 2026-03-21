@@ -8,6 +8,12 @@ from typing import Annotated
 import typer
 from rich.console import Console
 
+from app.adapters.llm.base import ModelProviderError
+from app.adapters.llm.ollama_connectivity import (
+    build_ollama_connectivity_hint,
+    probe_ollama_endpoint,
+    resolve_ollama_base_url,
+)
 from app.adapters.llm.registry import create_provider
 from app.domain.reading_goal import ReadingGoal, UserIntervention
 from app.ingest.factory import build_default_router
@@ -33,6 +39,46 @@ def _load_interventions(path: Path | None) -> list[UserIntervention]:
     return items
 
 
+def _emit_cli_event(event_type: str, payload: dict[str, object], *, jsonl: bool) -> None:
+    if jsonl:
+        console.print(json.dumps({"type": event_type, "payload": payload}, ensure_ascii=False))
+        return
+    rendered = " ".join(f"{k}={v}" for k, v in payload.items())
+    console.print(f"[{event_type}] {rendered}".strip())
+
+
+async def _preflight_provider(provider: str, model: str, *, jsonl: bool) -> None:
+    if provider.lower() != "ollama":
+        return
+
+    base_url = resolve_ollama_base_url()
+    status = await probe_ollama_endpoint(base_url)
+    _emit_cli_event(
+        "provider.probe",
+        {
+            "provider": "ollama",
+            "base_url": status.base_url,
+            "status": status.status,
+            "reachable": status.reachable,
+            "num_models": status.num_models,
+        },
+        jsonl=jsonl,
+    )
+    if not status.reachable:
+        raise ModelProviderError(
+            build_ollama_connectivity_hint(status.base_url)
+            + (f" Probe detail: {status.message}" if status.message else "")
+        )
+
+    if model not in status.models:
+        available = ", ".join(status.models[:8]) or "<none>"
+        raise ModelProviderError(
+            f"Ollama is reachable at {status.base_url}, but model '{model}' is not available. "
+            f"Available models: {available}. Pull it first with `ollama pull {model}` or choose "
+            "an installed model."
+        )
+
+
 async def _run_main(
     input: Path,
     goal: str,
@@ -42,6 +88,7 @@ async def _run_main(
     permission_tier: str,
     jsonl: bool,
 ) -> None:
+    await _preflight_provider(provider, model, jsonl=jsonl)
     reading_goal = ReadingGoal(user_query=goal)
     document = await build_default_router().aingest_to_ir(
         DocumentSource.from_path(input),
@@ -57,11 +104,11 @@ async def _run_main(
     )
 
     for event in events:
-        if jsonl:
-            console.print(json.dumps(event.model_dump(), ensure_ascii=False))
-        else:
-            payload = " ".join(f"{k}={v}" for k, v in event.payload.items())
-            console.print(f"[{event.type}] {payload}".strip())
+        _emit_cli_event(event.type, event.payload, jsonl=jsonl)
+
+
+async def _probe_ollama_main(model: str, jsonl: bool) -> None:
+    await _preflight_provider("ollama", model, jsonl=jsonl)
 
 
 @app.command()
@@ -73,7 +120,7 @@ def main(
     goal: Annotated[str, typer.Option(..., help="Goal-conditioned reading instruction.")],
     provider: Annotated[
         str,
-        typer.Option(help="Provider name: heuristic or openai."),
+        typer.Option(help="Provider name: heuristic, openai, or ollama."),
     ] = "heuristic",
     model: Annotated[
         str,
@@ -111,6 +158,22 @@ def main(
             jsonl=jsonl,
         )
     )
+
+
+@app.command("probe-ollama")
+def probe_ollama(
+    model: Annotated[
+        str,
+        typer.Option(
+            help="Model name that should already be available in the target Ollama service.",
+        ),
+    ] = "qwen3:4b",
+    jsonl: Annotated[
+        bool,
+        typer.Option(help="Emit JSONL instead of human-readable events."),
+    ] = False,
+) -> None:
+    asyncio.run(_probe_ollama_main(model=model, jsonl=jsonl))
 
 
 if __name__ == "__main__":

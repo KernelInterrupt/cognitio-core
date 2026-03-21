@@ -37,6 +37,16 @@ Optional configuration:
 
 - `OLLAMA_BASE_URL`
 
+## CLI preflight
+
+The headless CLI now performs an Ollama reachability + model-availability probe before a run starts when `--provider ollama` is selected.
+
+It also exposes:
+
+- `cognitio-headless probe-ollama --model qwen3:4b`
+
+This keeps connectivity failures and missing-model issues out of the main guided-reading flow.
+
 ## Connectivity strategy
 
 ### Safe default
