@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from collections.abc import AsyncIterator
 from typing import TypeVar
 
@@ -20,6 +19,10 @@ from app.adapters.llm.models import (
     ResearchSubtaskRequest,
     ResearchSubtaskResponse,
 )
+from app.adapters.llm.ollama_connectivity import (
+    build_ollama_connectivity_hint,
+    resolve_ollama_base_url,
+)
 
 SchemaT = TypeVar("SchemaT", bound=BaseModel)
 
@@ -33,7 +36,7 @@ class OllamaProvider(ModelProvider):
     ) -> None:
         self._name = "ollama"
         self._model = model
-        self._base_url = (base_url or os.getenv("OLLAMA_BASE_URL") or "http://127.0.0.1:11434").rstrip("/")
+        self._base_url = resolve_ollama_base_url(base_url)
         self._client = client or httpx.AsyncClient(base_url=self._base_url, timeout=120.0)
         self._owns_client = client is None
 
@@ -105,19 +108,24 @@ class OllamaProvider(ModelProvider):
             f"{system_prompt}\n\n"
             "Return JSON only. The JSON must validate against the provided schema."
         )
-        response = await self._client.post(
-            "/api/chat",
-            json={
-                "model": self._model,
-                "stream": False,
-                "format": schema,
-                "options": {"temperature": 0},
-                "messages": [
-                    {"role": "system", "content": prompt},
-                    {"role": "user", "content": user_payload},
-                ],
-            },
-        )
+        try:
+            response = await self._client.post(
+                "/api/chat",
+                json={
+                    "model": self._model,
+                    "stream": False,
+                    "format": schema,
+                    "options": {"temperature": 0},
+                    "messages": [
+                        {"role": "system", "content": prompt},
+                        {"role": "user", "content": user_payload},
+                    ],
+                },
+            )
+        except httpx.HTTPError as exc:
+            raise ModelProviderError(
+                build_ollama_connectivity_hint(self._base_url) + f" Root error: {exc}"
+            ) from exc
         try:
             response.raise_for_status()
         except httpx.HTTPStatusError as exc:

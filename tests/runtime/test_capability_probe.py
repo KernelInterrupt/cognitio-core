@@ -1,5 +1,7 @@
 from subprocess import CompletedProcess
 
+import pytest
+
 from app.runtime.capability_probe import (
     CapabilityProbe,
     DockerCapability,
@@ -136,13 +138,27 @@ def test_probe_run_uses_docker_gpu_info_when_local_env_cannot_access_gpu() -> No
     assert report.recommendation.recommended_runtime == "docker_cuda"
 
 
-def test_probe_docker_marks_active_probe_success() -> None:
+def test_probe_docker_marks_active_probe_success(monkeypatch: pytest.MonkeyPatch) -> None:
     probe = CapabilityProbe(active_docker_probe=True)
-    probe._probe_docker_nvidia_passthrough = lambda: CompletedProcess(  # type: ignore[method-assign]
-        args=["docker"],
-        returncode=0,
-        stdout="RTX 4060 Laptop GPU, 580.97, 8188\n",
-        stderr="",
+    monkeypatch.setattr(
+        "app.runtime.capability_probe.shutil.which",
+        lambda _name: "/usr/bin/docker",
+    )
+    monkeypatch.setattr(
+        "app.runtime.capability_probe._safe_run",
+        lambda args, timeout=15: CompletedProcess(
+            args=args,
+            returncode=0,
+            stdout='{"DefaultRuntime":"runc"}',
+            stderr="",
+        )
+        if args[:2] == ["docker", "info"]
+        else CompletedProcess(
+            args=args,
+            returncode=0,
+            stdout="RTX 4060 Laptop GPU, 580.97, 8188\n",
+            stderr="",
+        ),
     )
     docker_info, issues, gpu_info = probe._probe_docker(  # noqa: SLF001
         PlatformInfo(
