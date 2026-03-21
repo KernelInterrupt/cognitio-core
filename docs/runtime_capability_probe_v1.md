@@ -13,23 +13,59 @@ A machine can have a GPU and still be unsuitable for our local runtime path beca
 - WSL distro limitations
 - driver/runtime mismatch
 
+## Probe order
+
+The probe now follows a layered strategy.
+
+### 1. Direct environment probe
+It first tries the simplest thing:
+- run `nvidia-smi` in the current environment
+- inspect direct GPU device visibility such as `/dev/dxg` or `/dev/dri`
+
+This answers:
+- can the current shell/distro directly use the GPU?
+- if not, what error appears?
+
+### 2. Passive Docker probe
+Then it inspects Docker availability via `docker info`.
+
+This answers:
+- is Docker available?
+- what runtime is active?
+- is this a Docker Desktop / WSL-like environment?
+
+### 3. Optional active Docker GPU probe
+If enabled, it additionally runs a real containerized `nvidia-smi` probe.
+
+This answers:
+- can Docker actually passthrough the NVIDIA GPU?
+- if yes, what GPU/VRAM does the container see?
+
 ## Outputs
 
 `CapabilityProbe` produces:
 - platform info
-- detected GPU info
+- merged GPU info
+- `env_gpu_status`
 - Docker capability snapshot
 - derived runtime capabilities
 - final runtime recommendation
 - blocked runtime reasons
+
+## Important distinction
+
+The report separates:
+- **direct environment GPU visibility**
+- **Docker runtime GPU visibility**
+
+This matters on WSL2 because the current distro may fail direct `nvidia-smi` while Docker Desktop can still successfully expose the NVIDIA GPU inside containers.
 
 ## Current recommendation policy
 
 ### Prefer `docker_cuda`
 When:
 - Docker is available
-- platform is WSL2/Linux Docker Desktop context
-- GPU vendor is NVIDIA
+- Docker NVIDIA passthrough is confirmed
 - VRAM is sufficient
 
 ### Prefer `remote_inference`
