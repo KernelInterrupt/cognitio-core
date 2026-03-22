@@ -28,13 +28,21 @@ def test_build_ollama_connectivity_hint_mentions_explicit_config() -> None:
 
 def test_probe_ollama_endpoint_reads_model_names() -> None:
     async def handler(_request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"models": [{"name": "qwen3:4b"}, {"name": "gemma3:4b"}]})
+        return httpx.Response(
+            200,
+            json={
+                "models": [
+                    {"name": "ibm/granite-docling:258m"},
+                    {"name": "local-test-model"},
+                ]
+            },
+        )
 
     client = httpx.AsyncClient(transport=httpx.MockTransport(handler), base_url="http://ollama.local")
     result = asyncio.run(probe_ollama_endpoint("http://ollama.local", client=client))
 
     assert result.reachable is True
-    assert result.models == ["qwen3:4b", "gemma3:4b"]
+    assert result.models == ["ibm/granite-docling:258m", "local-test-model"]
 
 
 def test_probe_ollama_endpoint_reports_network_error() -> None:

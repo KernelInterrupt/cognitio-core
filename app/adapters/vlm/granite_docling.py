@@ -26,7 +26,7 @@ class GraniteDoclingAnalyzer(DocumentAnalyzer):
         prompt: str = _GRANITE_PROMPT,
     ) -> None:
         self._name = "granite_docling"
-        self._model = model or os.getenv("GRANITE_DOCLING_MODEL") or "granite-docling-258m"
+        self._model = model or os.getenv("GRANITE_DOCLING_MODEL") or "ibm/granite-docling:258m"
         self._prompt = prompt
         self._client = AsyncOpenAI(
             api_key=api_key or os.getenv("OPENAI_API_KEY") or "dummy",

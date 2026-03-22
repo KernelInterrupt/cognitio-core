@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from collections.abc import AsyncIterator
 from typing import TypeVar
 
@@ -30,12 +31,14 @@ SchemaT = TypeVar("SchemaT", bound=BaseModel)
 class OllamaProvider(ModelProvider):
     def __init__(
         self,
-        model: str = "qwen3:4b",
+        model: str | None = None,
         base_url: str | None = None,
         client: httpx.AsyncClient | None = None,
     ) -> None:
         self._name = "ollama"
-        self._model = model
+        self._model = model or os.getenv("OLLAMA_LLM_MODEL")
+        if not self._model:
+            raise ValueError("OllamaProvider requires an explicit model or OLLAMA_LLM_MODEL.")
         self._base_url = resolve_ollama_base_url(base_url)
         self._client = client or httpx.AsyncClient(base_url=self._base_url, timeout=120.0)
         self._owns_client = client is None

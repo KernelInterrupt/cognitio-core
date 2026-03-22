@@ -121,7 +121,7 @@ python -m app.cli.run_headless \
 Or probe Ollama connectivity:
 
 ```bash
-python -m app.cli.run_headless probe-ollama --model qwen3:4b --jsonl
+python -m app.cli.run_headless probe-ollama --model ibm/granite-docling:258m --jsonl
 ```
 
 ## License

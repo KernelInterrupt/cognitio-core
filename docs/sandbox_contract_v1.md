@@ -69,10 +69,15 @@ Already present:
 - read editable region
 - write editable region
 - patch editable region
-- compile through `FakeCompiler`
+- compile through the current temporary `FakeCompiler` backend
 - retrieve structured compile errors
 - submit only after successful compile
 - bounded provider retry loop in `AnnotationService`
+
+Important clarification:
+- the fake compiler is only a workflow-testing backend
+- the target system should compile through a real LaTeX toolchain, likely via Docker or another isolated backend path
+- the long-term goal is real multilingual LaTeX compilation behind the same structured interface
 
 Current weak spots:
 - sandbox state is not explicit enough

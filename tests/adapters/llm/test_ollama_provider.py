@@ -15,7 +15,7 @@ from app.domain.reading_goal import ReadingGoal
 def test_ollama_provider_guided_step_parses_structured_response() -> None:
     async def handler(request: httpx.Request) -> httpx.Response:
         payload = json.loads(request.content.decode("utf-8"))
-        assert payload["model"] == "qwen3:4b"
+        assert payload["model"] == "local-test-model"
         assert payload["stream"] is False
         assert payload["messages"][0]["role"] == "system"
         return httpx.Response(
@@ -32,7 +32,7 @@ def test_ollama_provider_guided_step_parses_structured_response() -> None:
 
     transport = httpx.MockTransport(handler)
     client = httpx.AsyncClient(transport=transport, base_url="http://ollama.local")
-    provider = OllamaProvider(client=client)
+    provider = OllamaProvider(model="local-test-model", client=client)
 
     response = asyncio.run(provider.guided_step(
         GuidedStepRequest(
@@ -53,7 +53,7 @@ def test_ollama_provider_raises_on_invalid_json() -> None:
         return httpx.Response(200, json={"message": {"content": "not-json"}})
 
     client = httpx.AsyncClient(transport=httpx.MockTransport(handler), base_url="http://ollama.local")
-    provider = OllamaProvider(client=client)
+    provider = OllamaProvider(model="local-test-model", client=client)
 
     with pytest.raises(ModelProviderError):
         asyncio.run(provider.guided_step(

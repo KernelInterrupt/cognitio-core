@@ -45,12 +45,12 @@ def test_preflight_provider_accepts_reachable_ollama_model(monkeypatch: pytest.M
             reachable=True,
             status="ok",
             num_models=2,
-            models=["qwen3:4b", "gemma3:4b"],
+            models=["ibm/granite-docling:258m", "local-test-model"],
             message="ok",
         )
 
     monkeypatch.setattr(run_headless, "probe_ollama_endpoint", fake_probe)
-    asyncio.run(run_headless._preflight_provider("ollama", "qwen3:4b", jsonl=True))
+    asyncio.run(run_headless._preflight_provider("ollama", "ibm/granite-docling:258m", jsonl=True))
 
 
 def test_preflight_provider_rejects_unreachable_ollama(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -69,7 +69,7 @@ def test_preflight_provider_rejects_unreachable_ollama(monkeypatch: pytest.Monke
     monkeypatch.setattr(run_headless, "probe_ollama_endpoint", fake_probe)
 
     with pytest.raises(run_headless.ModelProviderError, match="Ollama is unreachable"):
-        asyncio.run(run_headless._preflight_provider("ollama", "qwen3:4b", jsonl=True))
+        asyncio.run(run_headless._preflight_provider("ollama", "local-test-model", jsonl=True))
 
 
 
@@ -88,8 +88,8 @@ def test_preflight_provider_rejects_missing_ollama_model(monkeypatch: pytest.Mon
 
     monkeypatch.setattr(run_headless, "probe_ollama_endpoint", fake_probe)
 
-    with pytest.raises(run_headless.ModelProviderError, match="ollama pull qwen3:4b"):
-        asyncio.run(run_headless._preflight_provider("ollama", "qwen3:4b", jsonl=True))
+    with pytest.raises(run_headless.ModelProviderError, match="ollama pull local-test-model"):
+        asyncio.run(run_headless._preflight_provider("ollama", "local-test-model", jsonl=True))
 
 
 
@@ -116,14 +116,14 @@ def test_run_main_invokes_ollama_preflight(monkeypatch: pytest.MonkeyPatch, tmp_
             input=input_path,
             goal="读这篇论文",
             provider="ollama",
-            model="qwen3:4b",
+            model="local-test-model",
             interventions=None,
             permission_tier="annotate",
             jsonl=True,
         )
     )
 
-    assert calls == [("ollama", "qwen3:4b", True)]
+    assert calls == [("ollama", "local-test-model", True)]
 
 
 
@@ -140,9 +140,12 @@ def test_probe_ollama_command_emits_json(monkeypatch: pytest.MonkeyPatch) -> Non
         )
 
     monkeypatch.setattr(run_headless, "_preflight_provider", fake_preflight)
-    result = runner.invoke(run_headless.app, ["probe-ollama", "--model", "qwen3:4b", "--jsonl"])
+    result = runner.invoke(
+        run_headless.app,
+        ["probe-ollama", "--model", "ibm/granite-docling:258m", "--jsonl"],
+    )
 
     assert result.exit_code == 0
     payload = json.loads(result.stdout.strip())
     assert payload["type"] == "provider.probe"
-    assert payload["payload"]["model"] == "qwen3:4b"
+    assert payload["payload"]["model"] == "ibm/granite-docling:258m"

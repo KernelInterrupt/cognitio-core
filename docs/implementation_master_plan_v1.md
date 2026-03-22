@@ -79,8 +79,13 @@ Already implemented:
 - locked template markers + editable region markers
 - editable-region read/write/patch API
 - compile step through a compiler abstraction
-- fake compiler returning structured compile errors
+- a temporary fake compiler backend for workflow testing
 - annotation service loop with limited retry attempts
+
+Target direction:
+- replace the temporary fake backend with a real LaTeX compiler path
+- likely via Docker or another isolated runtime path that can support multilingual LaTeX compilation
+- preserve the same structured compile-result interface while swapping the backend
 
 Relevant files now:
 

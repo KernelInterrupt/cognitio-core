@@ -167,7 +167,7 @@ def probe_ollama(
         typer.Option(
             help="Model name that should already be available in the target Ollama service.",
         ),
-    ] = "qwen3:4b",
+    ] = "ibm/granite-docling:258m",
     jsonl: Annotated[
         bool,
         typer.Option(help="Emit JSONL instead of human-readable events."),
