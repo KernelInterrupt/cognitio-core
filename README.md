@@ -77,6 +77,10 @@ cognitio-frontend
 
 The current plan is documented in [`docs/repo_split_plan_v1.md`](docs/repo_split_plan_v1.md).
 
+Long-horizon backend execution docs:
+- [`docs/implementation_master_plan_v1.md`](docs/implementation_master_plan_v1.md)
+- [`docs/execution_checklist_v1.md`](docs/execution_checklist_v1.md)
+
 In short:
 - `cognitio-document` will own document perception and runtime handles
 - `cognitio-core` will own guided reading orchestration and backend/runtime policy
