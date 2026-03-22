@@ -6,14 +6,16 @@ from app.domain.document_ir import (
     DocumentIR,
     DocumentMetadata,
     DocumentNode,
+    DocumentRelation,
     EquationNode,
     FigureNode,
+    LocalizedEvidence,
     ParagraphNode,
     Provenance,
     SectionNode,
     TableNode,
 )
-from app.ingest.parsed_document import ParsedBlock, ParsedDocument
+from app.ingest.parsed_document import ParsedBlock, ParsedDocument, ParsedRelation
 
 
 class ParsedDocumentNormalizer:
@@ -30,12 +32,15 @@ class ParsedDocumentNormalizer:
             )
         }
         reading_order: list[str] = []
+        block_id_to_target_id: dict[str, str] = {}
+        localized_evidence: dict[str, LocalizedEvidence] = {}
         current_parent_id = root_id
         section_index = 0
         paragraph_index = 0
         figure_index = 0
         table_index = 0
         equation_index = 0
+        evidence_index = 0
 
         for block in parsed.blocks:
             provenance = _to_provenance(parsed.source_kind, block)
@@ -52,6 +57,7 @@ class ParsedDocumentNormalizer:
                 nodes[node_id] = node
                 nodes[root_id].children.append(node_id)
                 reading_order.append(node_id)
+                block_id_to_target_id[block.block_id] = node_id
                 current_parent_id = node_id
                 continue
 
@@ -99,6 +105,23 @@ class ParsedDocumentNormalizer:
             nodes[node_id] = node
             nodes[current_parent_id].children.append(node_id)
             reading_order.append(node_id)
+            block_id_to_target_id[block.block_id] = node_id
+
+        for block in parsed.localized_evidence:
+            evidence_index += 1
+            evidence_id = f"evi_{evidence_index:04d}"
+            localized_evidence[evidence_id] = LocalizedEvidence(
+                id=evidence_id,
+                kind=block.kind,
+                text=block.text,
+                page_no=block.page_no,
+                bbox=block.bbox,
+                reading_order=block.reading_order,
+                provenance=block.provenance,
+            )
+            block_id_to_target_id[block.block_id] = evidence_id
+
+        relations = _normalize_relations(parsed.relations, block_id_to_target_id)
 
         return DocumentIR(
             document_id=parsed.document_id,
@@ -113,8 +136,33 @@ class ParsedDocumentNormalizer:
             ),
             nodes=nodes,
             reading_order=reading_order,
+            localized_evidence=localized_evidence,
+            relations=relations,
             created_at=datetime.now(UTC).isoformat(),
         )
+
+
+def _normalize_relations(
+    relations: list[ParsedRelation],
+    block_id_to_target_id: dict[str, str],
+) -> list[DocumentRelation]:
+    normalized: list[DocumentRelation] = []
+    for relation in relations:
+        source_id = block_id_to_target_id.get(relation.source_block_id)
+        target_id = block_id_to_target_id.get(relation.target_block_id)
+        if source_id is None or target_id is None:
+            continue
+        normalized.append(
+            DocumentRelation(
+                relation_id=relation.relation_id,
+                kind=relation.kind,
+                source_id=source_id,
+                target_id=target_id,
+                score=relation.score,
+                provenance=relation.provenance,
+            )
+        )
+    return normalized
 
 
 def _to_provenance(source_kind: str, block: ParsedBlock) -> Provenance:

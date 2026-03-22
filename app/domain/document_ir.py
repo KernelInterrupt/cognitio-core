@@ -4,6 +4,8 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
 
+JsonScalar = str | int | float | bool | None
+
 
 class DocumentMetadata(BaseModel):
     title: str | None = None
@@ -79,11 +81,49 @@ IRNode = Annotated[
 ]
 
 
+class LocalizedEvidence(BaseModel):
+    id: str
+    kind: Literal[
+        "paragraph",
+        "heading",
+        "figure",
+        "table",
+        "equation",
+        "code",
+        "list",
+        "unknown",
+    ]
+    text: str = ""
+    page_no: int | None = None
+    bbox: tuple[float, float, float, float] | None = None
+    reading_order: int
+    provenance: dict[str, JsonScalar] = Field(default_factory=dict)
+
+
+class DocumentRelation(BaseModel):
+    relation_id: str
+    kind: Literal[
+        "localized_evidence_for_block",
+        "caption_of_figure",
+        "caption_of_table",
+        "caption_of_equation",
+        "nearby_paragraph_for_figure",
+        "nearby_paragraph_for_table",
+        "nearby_paragraph_for_equation",
+    ]
+    source_id: str
+    target_id: str
+    score: float | None = None
+    provenance: dict[str, JsonScalar] = Field(default_factory=dict)
+
+
 class DocumentIR(BaseModel):
     document_id: str
     root_id: str
     metadata: DocumentMetadata
     nodes: dict[str, IRNode]
     reading_order: list[str]
+    localized_evidence: dict[str, LocalizedEvidence] = Field(default_factory=dict)
+    relations: list[DocumentRelation] = Field(default_factory=list)
     created_at: str
     ir_version: str = "1.0"

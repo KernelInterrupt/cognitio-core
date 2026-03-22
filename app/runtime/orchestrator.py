@@ -47,6 +47,7 @@ class Orchestrator:
         session = ReadingSession(run_id="run_001", document_id=document.document_id, goal=goal)
         session.enqueue_interventions(interventions or [])
         permissions = PermissionProfile.for_tier(permission_tier)
+        self.tools.bind_document(document)
 
         events: list[Event] = [
             build_event(

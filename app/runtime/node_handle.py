@@ -4,10 +4,12 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from app.domain.annotation import Annotation
+from app.domain.document_ir import DocumentRelation, IRNode
 from app.domain.research import ResearchRequest
 from app.domain.signals import Advice, HighlightState, WarningSignal
 
 if TYPE_CHECKING:
+    from app.runtime.document_handles import LocalizedEvidenceHandle
     from app.runtime.tool_registry import ToolRegistry
 
 
@@ -15,6 +17,33 @@ if TYPE_CHECKING:
 class NodeHandle:
     node_id: str
     tools: ToolRegistry
+
+    @property
+    def node(self) -> IRNode:
+        return self.tools.get_node(self.node_id)
+
+    @property
+    def kind(self) -> str:
+        return self.node.kind
+
+    @property
+    def page_no(self) -> int | None:
+        provenance = self.node.provenance
+        return provenance.pdf_page if provenance is not None else None
+
+    def text_content(self) -> str | None:
+        node = self.node
+        for attr in ("text", "caption", "text_repr", "title"):
+            value = getattr(node, attr, None)
+            if isinstance(value, str) and value:
+                return value
+        return None
+
+    def localized_evidence(self, kind: str | None = None) -> list[LocalizedEvidenceHandle]:
+        return self.tools.localized_evidence_for(self.node_id, kind=kind)
+
+    def relations(self, kind: str | None = None) -> list[DocumentRelation]:
+        return self.tools.relations_for(self.node_id, kind=kind)
 
     def highlight(self, level: str, reason: str | None = None) -> HighlightState:
         return self.tools.highlight(self.node_id, level, reason)
