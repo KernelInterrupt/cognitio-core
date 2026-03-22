@@ -64,6 +64,23 @@ caption_nodes = doc.captions_of("evi_0002")
 
 This is intended to grow into a more complete playwright-like document API.
 
+## Planned repository split
+
+This repo is currently a unified prototype, but the intended later split is:
+
+```text
+cognitio-document
+cognitio-core
+cognitio-frontend
+```
+
+The current plan is documented in [`docs/repo_split_plan_v1.md`](docs/repo_split_plan_v1.md).
+
+In short:
+- `cognitio-document` will own document perception and runtime handles
+- `cognitio-core` will own guided reading orchestration and model/runtime policy
+- `cognitio-frontend` will own the user-facing reading interface
+
 ## Quickstart
 
 ### 1. Create environment
