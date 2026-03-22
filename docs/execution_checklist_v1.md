@@ -146,6 +146,12 @@ Notes:
 
 ---
 
+## Documentation subtask status
+- [x] write master implementation plan
+- [x] write execution checklist
+- [x] write dedicated playwright-like API spec
+- [x] write dedicated sandbox contract/state-machine spec
+
 ## Immediate next task
 - [ ] D2: add `select_section(...)`
 - [ ] D2: add `select_table(...)`

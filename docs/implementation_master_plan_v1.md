@@ -18,6 +18,11 @@ This file is the **source of truth** for the long-horizon backend implementation
 - the **document layer**
 - the **agent sandbox layer**
 
+Supporting technical specs that future sessions should also consult when relevant:
+
+- `docs/playwright_like_api_v1.md`
+- `docs/sandbox_contract_v1.md`
+
 `cognitio-core` is a **backend repo only**.
 The frontend stays in a separate repo and is **not** part of this execution plan.
 
