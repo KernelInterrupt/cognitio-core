@@ -20,7 +20,7 @@ def _build_document() -> DocumentIR:
             source_kind="pdf",
             page_count=1,
             localized_evidence_count=2,
-            relation_count=2,
+            relation_count=3,
         ),
         nodes={
             "doc_root": DocumentNode(id="doc_root", order_index=0, title="Runtime Test"),
@@ -38,15 +38,22 @@ def _build_document() -> DocumentIR:
                 text="The core idea lives here.",
                 provenance=Provenance(source_kind="pdf", pdf_page=1),
             ),
+            "para_0002": ParagraphNode(
+                id="para_0002",
+                order_index=3,
+                parent_id="sec_0001",
+                text="Figure 1: Attention layout overview.",
+                provenance=Provenance(source_kind="pdf", pdf_page=1),
+            ),
         },
-        reading_order=["sec_0001", "para_0001"],
+        reading_order=["sec_0001", "para_0001", "para_0002"],
         localized_evidence={
             "evi_0001": LocalizedEvidence(
                 id="evi_0001",
                 kind="paragraph",
                 text="The core idea lives here.",
                 page_no=1,
-                reading_order=3,
+                reading_order=4,
                 provenance={"layer": "supporting"},
             ),
             "evi_0002": LocalizedEvidence(
@@ -54,7 +61,7 @@ def _build_document() -> DocumentIR:
                 kind="figure",
                 text="Figure 1",
                 page_no=1,
-                reading_order=4,
+                reading_order=5,
             ),
         },
         relations=[
@@ -63,6 +70,13 @@ def _build_document() -> DocumentIR:
                 kind="localized_evidence_for_block",
                 source_id="evi_0001",
                 target_id="para_0001",
+                score=1.0,
+            ),
+            DocumentRelation(
+                relation_id="rel_0001_caption",
+                kind="caption_of_figure",
+                source_id="para_0002",
+                target_id="evi_0002",
                 score=1.0,
             ),
             DocumentRelation(
@@ -82,11 +96,12 @@ def test_document_handle_supports_page_and_evidence_queries() -> None:
     document = tools.bind_document(_build_document())
 
     page = document.page(1)
-    assert [node.node_id for node in page.paragraphs()] == ["para_0001"]
+    assert [node.node_id for node in page.paragraphs()] == ["para_0001", "para_0002"]
     assert [evidence.evidence_id for evidence in page.localized_evidence()] == [
         "evi_0001",
         "evi_0002",
     ]
+    assert [figure.evidence_id for figure in page.figures()] == ["evi_0002"]
 
     paragraph = document.select("para_0001")
     assert paragraph.kind == "paragraph"
@@ -103,6 +118,22 @@ def test_document_handle_supports_text_selection_and_relation_lookup() -> None:
     assert paragraph is not None
     assert paragraph.node_id == "para_0001"
 
+    selected_paragraph = document.select_paragraph("Attention layout")
+    assert selected_paragraph is not None
+    assert selected_paragraph.node_id == "para_0002"
+
+    figure = document.select_figure("Figure 1")
+    assert figure is not None
+    assert figure.evidence_id == "evi_0002"
+    assert [node.node_id for node in figure.caption_nodes()] == ["para_0002"]
+    assert [node.node_id for node in figure.nearby_paragraphs()] == ["para_0001"]
+
+    nearby = document.select_near_figure("Figure 1")
+    assert nearby is not None
+    assert nearby.node_id == "para_0001"
+
     figure_relations = document.relations_for("evi_0002", kind="nearby_paragraph_for_figure")
     assert len(figure_relations) == 1
     assert figure_relations[0].target_id == "para_0001"
+    assert [node.node_id for node in document.captions_of("evi_0002")] == ["para_0002"]
+    assert [node.node_id for node in document.nearby_paragraphs_of("evi_0002")] == ["para_0001"]

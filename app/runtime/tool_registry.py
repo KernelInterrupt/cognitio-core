@@ -9,6 +9,18 @@ from app.domain.signals import Advice, HighlightState, WarningSignal
 from app.runtime.document_handles import DocumentHandle, LocalizedEvidenceHandle
 from app.runtime.node_handle import NodeHandle
 
+CAPTION_RELATION_KINDS = {
+    "caption_of_figure",
+    "caption_of_table",
+    "caption_of_equation",
+}
+
+NEARBY_RELATION_KINDS = {
+    "nearby_paragraph_for_figure",
+    "nearby_paragraph_for_table",
+    "nearby_paragraph_for_equation",
+}
+
 
 class ToolRegistry:
     """Structured tool bindings plus a document runtime over finalized IR."""
@@ -74,11 +86,14 @@ class ToolRegistry:
         *,
         kind: str | None = None,
         text_contains: str | None = None,
+        page_no: int | None = None,
     ) -> NodeHandle | None:
         document = self._require_document()
         needle = text_contains.casefold() if text_contains is not None else None
         for node_id in document.reading_order:
             node = document.nodes[node_id]
+            if page_no is not None and self._page_for_node(node) != page_no:
+                continue
             if kind is not None and node.kind != kind:
                 continue
             if needle is not None:
@@ -86,6 +101,27 @@ class ToolRegistry:
                 if haystack is None or needle not in haystack.casefold():
                     continue
             return self.select(node_id)
+        return None
+
+    def select_first_evidence(
+        self,
+        *,
+        kind: str | None = None,
+        text_contains: str | None = None,
+        page_no: int | None = None,
+    ) -> LocalizedEvidenceHandle | None:
+        document = self._require_document()
+        needle = text_contains.casefold() if text_contains is not None else None
+        evidence_ids = document.localized_evidence.keys()
+        for evidence_id in evidence_ids:
+            evidence = document.localized_evidence[evidence_id]
+            if page_no is not None and evidence.page_no != page_no:
+                continue
+            if kind is not None and evidence.kind != kind:
+                continue
+            if needle is not None and needle not in evidence.text.casefold():
+                continue
+            return LocalizedEvidenceHandle(evidence_id=evidence_id, tools=self)
         return None
 
     def get_node(self, node_id: str) -> IRNode:
@@ -131,6 +167,20 @@ class ToolRegistry:
                 continue
             handles.append(LocalizedEvidenceHandle(evidence_id=evidence.id, tools=self))
         return handles
+
+    def captions_of(self, target_id: str) -> list[NodeHandle]:
+        return [
+            self.select(relation.source_id)
+            for relation in self._incoming_relations.get(target_id, [])
+            if relation.kind in CAPTION_RELATION_KINDS and self._is_node_id(relation.source_id)
+        ]
+
+    def nearby_paragraphs_of(self, target_id: str) -> list[NodeHandle]:
+        return [
+            self.select(relation.target_id)
+            for relation in self._outgoing_relations.get(target_id, [])
+            if relation.kind in NEARBY_RELATION_KINDS and self._is_node_id(relation.target_id)
+        ]
 
     def relations_for(self, target_id: str, kind: str | None = None) -> list[DocumentRelation]:
         relations = [
@@ -196,6 +246,10 @@ class ToolRegistry:
         if self.document_ir is None:
             raise RuntimeError("No document bound to ToolRegistry")
         return self.document_ir
+
+    def _is_node_id(self, item_id: str) -> bool:
+        document = self._require_document()
+        return item_id in document.nodes
 
     @staticmethod
     def _page_for_node(node: IRNode) -> int | None:

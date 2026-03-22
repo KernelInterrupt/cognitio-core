@@ -34,6 +34,12 @@ class LocalizedEvidenceHandle:
     def relations(self, kind: str | None = None) -> list[DocumentRelation]:
         return self.tools.relations_for(self.evidence_id, kind=kind)
 
+    def caption_nodes(self) -> list[NodeHandle]:
+        return self.tools.captions_of(self.evidence_id)
+
+    def nearby_paragraphs(self) -> list[NodeHandle]:
+        return self.tools.nearby_paragraphs_of(self.evidence_id)
+
 
 @dataclass
 class PageHandle:
@@ -56,6 +62,23 @@ class PageHandle:
             for evidence_id in self.tools.evidence_ids_on_page(self.page_no, kind)
         ]
 
+    def figures(self) -> list[LocalizedEvidenceHandle]:
+        return self.localized_evidence(kind="figure")
+
+    def select_paragraph(self, text_contains: str | None = None) -> NodeHandle | None:
+        return self.tools.select_first(
+            kind="paragraph",
+            text_contains=text_contains,
+            page_no=self.page_no,
+        )
+
+    def select_figure(self, text_contains: str | None = None) -> LocalizedEvidenceHandle | None:
+        return self.tools.select_first_evidence(
+            kind="figure",
+            text_contains=text_contains,
+            page_no=self.page_no,
+        )
+
 
 @dataclass
 class DocumentHandle:
@@ -65,6 +88,10 @@ class DocumentHandle:
     def page(self, page_no: int) -> PageHandle:
         return PageHandle(page_no=page_no, tools=self.tools)
 
+    def pages(self) -> list[PageHandle]:
+        page_count = self.document.metadata.page_count or 0
+        return [self.page(page_no) for page_no in range(1, page_count + 1)]
+
     def select(self, node_id: str) -> NodeHandle:
         return self.tools.select(node_id)
 
@@ -73,8 +100,50 @@ class DocumentHandle:
         *,
         kind: str | None = None,
         text_contains: str | None = None,
+        page_no: int | None = None,
     ) -> NodeHandle | None:
-        return self.tools.select_first(kind=kind, text_contains=text_contains)
+        return self.tools.select_first(kind=kind, text_contains=text_contains, page_no=page_no)
+
+    def select_paragraph(
+        self,
+        text_contains: str | None = None,
+        *,
+        page_no: int | None = None,
+    ) -> NodeHandle | None:
+        return self.select_first(kind="paragraph", text_contains=text_contains, page_no=page_no)
+
+    def figures(self, *, page_no: int | None = None) -> list[LocalizedEvidenceHandle]:
+        if page_no is None:
+            return [
+                LocalizedEvidenceHandle(evidence_id=evidence_id, tools=self.tools)
+                for evidence_id in self.document.localized_evidence
+                if self.document.localized_evidence[evidence_id].kind == "figure"
+            ]
+        return self.page(page_no).figures()
+
+    def select_figure(
+        self,
+        text_contains: str | None = None,
+        *,
+        page_no: int | None = None,
+    ) -> LocalizedEvidenceHandle | None:
+        return self.tools.select_first_evidence(
+            kind="figure",
+            text_contains=text_contains,
+            page_no=page_no,
+        )
+
+    def select_near_figure(
+        self,
+        text_contains: str | None = None,
+        *,
+        page_no: int | None = None,
+    ) -> NodeHandle | None:
+        figure = self.select_figure(text_contains=text_contains, page_no=page_no)
+        if figure is None:
+            return None
+        nearby = figure.nearby_paragraphs()
+        return nearby[0] if nearby else None
 
     def evidence_for(
         self,
@@ -83,9 +152,11 @@ class DocumentHandle:
     ) -> list[LocalizedEvidenceHandle]:
         return self.tools.localized_evidence_for(node_id, kind=kind)
 
+    def captions_of(self, target_id: str) -> list[NodeHandle]:
+        return self.tools.captions_of(target_id)
+
+    def nearby_paragraphs_of(self, target_id: str) -> list[NodeHandle]:
+        return self.tools.nearby_paragraphs_of(target_id)
+
     def relations_for(self, target_id: str, kind: str | None = None) -> list[DocumentRelation]:
         return self.tools.relations_for(target_id, kind=kind)
-
-    def pages(self) -> list[PageHandle]:
-        page_count = self.document.metadata.page_count or 0
-        return [self.page(page_no) for page_no in range(1, page_count + 1)]

@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "cognitio-guided-reading"
 version = "0.1.0"
 description = "Headless guided-reading backend for structured documents"
-readme = "docs/backend_blueprint_v1.md"
+readme = "README.md"
 requires-python = ">=3.13"
 license = { text = "Apache-2.0" }
 authors = [
