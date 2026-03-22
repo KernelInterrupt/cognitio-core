@@ -13,6 +13,7 @@ class PageImageRef(BaseModel):
 
 class VlmPageBlock(BaseModel):
     kind: Literal["heading", "paragraph", "figure", "table", "equation", "code", "unknown"]
+    layer: Literal["primary", "supporting"] = "primary"
     text: str = ""
     bbox: tuple[float, float, float, float] | None = None
     reading_order: int

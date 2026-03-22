@@ -13,5 +13,9 @@ def test_headless_smoke() -> None:
     assert "annotation.compiled" in event_types
     assert "run.completed" in event_types
 
+    ingested = next(event for event in events if event.type == "document.ingested")
+    assert ingested.payload["localized_evidence_count"] == 0
+    assert ingested.payload["relation_count"] == 0
+
     compiled = next(event for event in events if event.type == "annotation.compiled")
     assert "这里写批注内容" in compiled.payload["rendered_content"]

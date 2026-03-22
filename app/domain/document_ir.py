@@ -10,6 +10,9 @@ class DocumentMetadata(BaseModel):
     authors: list[str] = Field(default_factory=list)
     source_kind: Literal["text", "pdf", "latex"]
     language: str | None = None
+    page_count: int | None = None
+    localized_evidence_count: int = 0
+    relation_count: int = 0
 
 
 class Provenance(BaseModel):
@@ -84,4 +87,3 @@ class DocumentIR(BaseModel):
     reading_order: list[str]
     created_at: str
     ir_version: str = "1.0"
-

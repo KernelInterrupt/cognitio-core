@@ -37,8 +37,11 @@ def parse_granite_doctag_to_page_analysis(
     if "<doctag>" not in content and "<loc_" not in content:
         return None
 
-    figure_like_blocks = _parse_tag_blocks(content)
     text_blocks = _text_layer_blocks(text_layer or "")
+    figure_like_blocks = _parse_tag_blocks(
+        content,
+        default_layer="supporting" if text_blocks else "primary",
+    )
 
     blocks: list[VlmPageBlock] = []
     order = 1
@@ -69,7 +72,11 @@ def parse_granite_doctag_to_page_analysis(
     )
 
 
-def _parse_tag_blocks(content: str) -> list[VlmPageBlock]:
+def _parse_tag_blocks(
+    content: str,
+    *,
+    default_layer: str = "primary",
+) -> list[VlmPageBlock]:
     inner = content.replace("<doctag>", "").replace("</doctag>", "")
     seen: set[tuple[str, tuple[float, float, float, float] | None, str]] = set()
     blocks: list[VlmPageBlock] = []
@@ -90,6 +97,7 @@ def _parse_tag_blocks(content: str) -> list[VlmPageBlock]:
         blocks.append(
             VlmPageBlock(
                 kind=kind,
+                layer=default_layer,
                 text=text,
                 bbox=bbox,
                 reading_order=0,
@@ -112,7 +120,7 @@ def _visible_text(text: str) -> str:
 
 
 def _text_layer_blocks(text_layer: str) -> list[VlmPageBlock]:
-    text = text_layer.strip()
+    text = text_layer.replace("\r\n", "\n").replace("\r", "\n").strip()
     if not text:
         return []
 
@@ -125,13 +133,13 @@ def _text_layer_blocks(text_layer: str) -> list[VlmPageBlock]:
         blocks.append(
             VlmPageBlock(
                 kind=_guess_chunk_kind(chunk),
+                layer="primary",
                 text=chunk,
                 reading_order=0,
                 rationale="derived_from_text_layer",
             )
         )
     return blocks
-
 
 def _title_page_blocks(text: str) -> list[VlmPageBlock]:
     lines = [line.strip() for line in text.splitlines() if line.strip()]
@@ -158,6 +166,7 @@ def _title_page_blocks(text: str) -> list[VlmPageBlock]:
         blocks.append(
             VlmPageBlock(
                 kind="paragraph",
+                layer="primary",
                 text=" ".join(notice_lines),
                 reading_order=0,
                 rationale="title_page_notice",
@@ -181,6 +190,7 @@ def _title_page_blocks(text: str) -> list[VlmPageBlock]:
         blocks.append(
             VlmPageBlock(
                 kind="heading",
+                layer="primary",
                 text=" ".join(title_lines),
                 reading_order=0,
                 rationale="title_page_title",
@@ -198,6 +208,7 @@ def _title_page_blocks(text: str) -> list[VlmPageBlock]:
         blocks.append(
             VlmPageBlock(
                 kind="paragraph",
+                layer="primary",
                 text="\n".join(meta_lines),
                 reading_order=0,
                 rationale="title_page_authors_and_affiliations",
@@ -208,6 +219,7 @@ def _title_page_blocks(text: str) -> list[VlmPageBlock]:
         blocks.append(
             VlmPageBlock(
                 kind="heading",
+                layer="primary",
                 text="Abstract",
                 reading_order=0,
                 rationale="abstract_heading",
@@ -226,6 +238,7 @@ def _title_page_blocks(text: str) -> list[VlmPageBlock]:
         blocks.append(
             VlmPageBlock(
                 kind="paragraph",
+                layer="primary",
                 text=" ".join(abstract_lines),
                 reading_order=0,
                 rationale="abstract_body",
@@ -237,6 +250,7 @@ def _title_page_blocks(text: str) -> list[VlmPageBlock]:
         blocks.append(
             VlmPageBlock(
                 kind="paragraph",
+                layer="primary",
                 text="\n".join(footer_lines),
                 reading_order=0,
                 rationale="title_page_footer",

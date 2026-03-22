@@ -30,6 +30,23 @@ class ParsedBlock(BaseModel):
     provenance: dict[str, str | int | float | bool | None] = Field(default_factory=dict)
 
 
+class ParsedRelation(BaseModel):
+    relation_id: str
+    kind: Literal[
+        "localized_evidence_for_block",
+        "caption_of_figure",
+        "caption_of_table",
+        "caption_of_equation",
+        "nearby_paragraph_for_figure",
+        "nearby_paragraph_for_table",
+        "nearby_paragraph_for_equation",
+    ]
+    source_block_id: str
+    target_block_id: str
+    score: float | None = None
+    provenance: dict[str, str | int | float | bool | None] = Field(default_factory=dict)
+
+
 class ParsedPage(BaseModel):
     page_no: int
     width: float | None = None
@@ -37,6 +54,8 @@ class ParsedPage(BaseModel):
     image_path: str | None = None
     text_layer: str | None = None
     blocks: list[ParsedBlock] = Field(default_factory=list)
+    localized_evidence: list[ParsedBlock] = Field(default_factory=list)
+    relations: list[ParsedRelation] = Field(default_factory=list)
 
 
 class ParsedDocument(BaseModel):
@@ -48,3 +67,11 @@ class ParsedDocument(BaseModel):
     @property
     def blocks(self) -> list[ParsedBlock]:
         return [block for page in self.pages for block in page.blocks]
+
+    @property
+    def localized_evidence(self) -> list[ParsedBlock]:
+        return [block for page in self.pages for block in page.localized_evidence]
+
+    @property
+    def relations(self) -> list[ParsedRelation]:
+        return [relation for page in self.pages for relation in page.relations]

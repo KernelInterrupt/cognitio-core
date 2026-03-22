@@ -46,6 +46,36 @@ class FakeAnalyzer(DocumentAnalyzer):
         )
 
 
+class LayeredAnalyzer(DocumentAnalyzer):
+    @property
+    def name(self) -> str:
+        return "layered"
+
+    async def analyze_page(self, request: PageAnalysisRequest) -> VlmPageAnalysis:
+        return VlmPageAnalysis(
+            page_no=request.page_no,
+            blocks=[
+                VlmPageBlock(
+                    kind="heading",
+                    layer="primary",
+                    text="Introduction",
+                    reading_order=1,
+                ),
+                VlmPageBlock(
+                    kind="paragraph",
+                    layer="primary",
+                    text="This is the first paragraph.",
+                    reading_order=2,
+                ),
+                VlmPageBlock(
+                    kind="paragraph",
+                    layer="supporting",
+                    text="This is the first paragraph.",
+                    reading_order=3,
+                ),
+            ],
+        )
+
 class EmptyAnalyzer(DocumentAnalyzer):
     @property
     def name(self) -> str:
@@ -85,3 +115,22 @@ def test_pdf_vlm_backend_falls_back_to_text_layer_when_analysis_empty() -> None:
 
     assert parsed.pages[0].blocks
     assert parsed.pages[0].blocks[0].text.startswith("Introduction")
+
+
+def test_pdf_vlm_backend_separates_localized_evidence_from_primary_reading_ir() -> None:
+    backend = PdfVlmBackend(LayeredAnalyzer(), extractor=FakeExtractor())
+    source = DocumentSource(
+        path="/tmp/sample.pdf",
+        filename="sample.pdf",
+        media_type="application/pdf",
+    )
+
+    parsed = asyncio.run(backend.aingest(source))
+
+    assert len(parsed.pages[0].blocks) == 2
+    assert parsed.pages[0].blocks[0].text == "Introduction"
+    assert parsed.pages[0].blocks[1].text == "This is the first paragraph."
+    assert len(parsed.pages[0].localized_evidence) == 1
+    assert parsed.pages[0].localized_evidence[0].text == "This is the first paragraph."
+    assert parsed.metadata["localized_evidence_count"] == 1
+    assert parsed.metadata["relation_count"] == 1

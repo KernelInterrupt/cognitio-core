@@ -54,6 +54,9 @@ class Orchestrator:
                 DocumentIngestedPayload(
                     document_id=document.document_id,
                     node_count=len(document.reading_order),
+                    page_count=document.metadata.page_count,
+                    localized_evidence_count=document.metadata.localized_evidence_count,
+                    relation_count=document.metadata.relation_count,
                 ),
             )
         ]

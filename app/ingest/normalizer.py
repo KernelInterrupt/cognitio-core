@@ -103,7 +103,14 @@ class ParsedDocumentNormalizer:
         return DocumentIR(
             document_id=parsed.document_id,
             root_id=root_id,
-            metadata=DocumentMetadata(source_kind=parsed.source_kind),
+            metadata=DocumentMetadata(
+                title=_as_str(parsed.metadata.get("title")),
+                source_kind=parsed.source_kind,
+                page_count=_as_int(parsed.metadata.get("page_count")),
+                localized_evidence_count=_as_int(parsed.metadata.get("localized_evidence_count"))
+                or 0,
+                relation_count=_as_int(parsed.metadata.get("relation_count")) or 0,
+            ),
             nodes=nodes,
             reading_order=reading_order,
             created_at=datetime.now(UTC).isoformat(),
@@ -120,3 +127,7 @@ def _to_provenance(source_kind: str, block: ParsedBlock) -> Provenance:
 
 def _as_str(value: object) -> str | None:
     return value if isinstance(value, str) else None
+
+
+def _as_int(value: object) -> int | None:
+    return value if isinstance(value, int) else None

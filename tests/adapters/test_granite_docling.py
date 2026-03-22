@@ -99,7 +99,7 @@ def test_doctag_bridge_uses_text_layer_for_title_page() -> None:
         for block in analysis.blocks
     )
     assert any(block.kind == "heading" and block.text == "Abstract" for block in analysis.blocks)
-    assert any(block.kind == "figure" for block in analysis.blocks)
+    assert any(block.kind == "figure" and block.layer == "supporting" for block in analysis.blocks)
     assert "granite_doctag_bridge_used" in analysis.notes
 
 
@@ -141,4 +141,4 @@ def test_granite_analyzer_prefers_native_doctag_mode(tmp_path: Path) -> None:
     assert analysis.blocks
     assert "granite_native_doctag_mode" in analysis.notes
     assert any(note.startswith("granite_elapsed_ms=") for note in analysis.notes)
-    assert any(block.kind == "heading" for block in analysis.blocks)
+    assert any(block.kind == "heading" and block.layer == "primary" for block in analysis.blocks)

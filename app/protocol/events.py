@@ -15,6 +15,9 @@ class Event(BaseModel):
 class DocumentIngestedPayload(BaseModel):
     document_id: str
     node_count: int
+    page_count: int | None = None
+    localized_evidence_count: int = 0
+    relation_count: int = 0
 
 
 class ReadingModeInferredPayload(BaseModel):
