@@ -1,10 +1,10 @@
 # Repository Split Plan v1
 
-This document records the current plan for how the prototype in `cognitio-core` should be split later.
+This document records the current plan for how the backend prototype in `cognitio-core` should be split later. The frontend is assumed to live in a separate repo rather than being folded into `cognitio-core`.
 
-## Why the current repo stays unified for now
+## Why the current backend repo stays unified for now
 
-At the current stage, keeping one repo is still useful because the following pieces are evolving together:
+At the current stage, keeping one backend repo is still useful because the following pieces are evolving together:
 
 - `DocumentIR`
 - PDF/text ingestion
@@ -87,7 +87,7 @@ This future repo should own the user-facing application:
 ## Recommended split order
 
 ### Phase 1: keep this repo as `cognitio-core`
-Short term, continue using this repo as the unified prototype while stabilizing:
+Short term, continue using this repo as the unified backend prototype while stabilizing:
 
 - `DocumentIR`
 - document runtime API

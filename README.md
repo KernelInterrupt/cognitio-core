@@ -66,7 +66,8 @@ This is intended to grow into a more complete playwright-like document API.
 
 ## Planned repository split
 
-This repo is currently a unified prototype, but the intended later split is:
+This repo currently holds the backend/core prototype only; the frontend is planned as a separate repo.
+The intended later layout is:
 
 ```text
 cognitio-document
@@ -78,8 +79,8 @@ The current plan is documented in [`docs/repo_split_plan_v1.md`](docs/repo_split
 
 In short:
 - `cognitio-document` will own document perception and runtime handles
-- `cognitio-core` will own guided reading orchestration and model/runtime policy
-- `cognitio-frontend` will own the user-facing reading interface
+- `cognitio-core` will own guided reading orchestration and backend/runtime policy
+- `cognitio-frontend` will stay as a separate user-facing application repo
 
 ## Quickstart
 
